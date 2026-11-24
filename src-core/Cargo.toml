@@ -1,0 +1,152 @@
+[package]
+name = "veyra-messenger"
+version = "1.26.60"
+license = "GPL-3.0-only"
+description = "Veyra Messenger MVP"
+authors = ["Veyra"]
+edition = "2021"
+
+[lib]
+name = "veyra_messenger_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-shell = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "io-util"] }
+# `compat` bridges tokio's AsyncRead/AsyncWrite to the futures traits libp2p
+# expects, so the proxied TcpStream can feed the standard upgrade path.
+tokio-util = { version = "0.7", features = ["compat"] }
+futures = "0.3"
+# Implementing libp2p's request_response::Codec trait (p2p/wire_codec.rs).
+async-trait = "0.1"
+libp2p = { version = "0.55", default-features = false, features = ["tokio", "tcp", "quic", "dns", "websocket", "noise", "yamux", "mdns", "request-response", "gossipsub", "identify", "ping", "kad", "relay", "dcutr", "autonat", "cbor", "macros"] }
+webrtc = "0.17.1"
+bytes = "1"
+cbor4ii = { version = "0.3", features = ["use_std"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+unicode-normalization = "0.1"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+ed25519-dalek = { version = "2", features = ["rand_core", "serde"] }
+hkdf = "0.12"
+sha2 = "0.10"
+snow = "0.10"
+rand = "0.8"
+zeroize = "1"
+base64 = "0.22"
+tempfile = "3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+tauri-plugin-dialog = "2.7.1"
+tauri-plugin-fs = "2"
+zip = { version = "8.6.0", default-features = false, features = ["deflate-flate2"] }
+tauri-plugin-clipboard-manager = "2.3.2"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls-webpki-roots", "socks"] }
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+percent-encoding = "2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-window-state = "2"
+
+[target.'cfg(target_os = "android")'.dependencies]
+# Direct dependency only for the startup netlink probe that gates mdns
+# (node.rs android_if_watch_probe). Resolves to vendor/if-watch via the
+# [patch.crates-io] section below, same as libp2p-tcp's and libp2p-mdns's
+# transitive copies.
+if-watch = { version = "3.2.2", features = ["tokio"] }
+# Round-scoped wakelock bridge (android_round.rs): Kotlin registers the
+# JavaVM via nativeInit, the swarm calls VeyraRoundBridge statics back.
+jni = "0.21"
+
+[target.'cfg(windows)'.dependencies]
+# Slice D: free-disk-space probe before accepting a large attachment.
+windows-sys = { version = "0.59", features = ["Win32_Storage_FileSystem", "Win32_Foundation"] }
+
+[target.'cfg(not(windows))'.dependencies]
+# Slice D: statvfs for the same free-disk-space probe on unix/android/ios.
+libc = "0.2"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+objc2 = "0.6"
+# block2 is used on iOS for the background-task expiration handler block
+# (ios-background-operation.md Stage 1) and on macOS for AV capture callbacks.
+block2 = "0.6"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-av-foundation = { version = "0.3.2", features = ["AVCaptureDevice", "AVMediaFormat", "block2"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+# Release builds shipped the full symbol table: measured on the 1.26.23
+# arm64 release APK, `libveyra_messenger_lib.so` was 57.4 MB, of which
+# `.symtab` + `.strtab` were ~19 MB — a third of the file. Nothing needs it at
+# runtime (dynamic linking uses `.dynsym`/`.dynstr`, together ~8 KB), so
+# `strip = "symbols"` takes the library to ~38 MB and the APK from 60 to
+# ~41 MB. Verified by running `llvm-strip --strip-all` on the shipped
+# library before changing anything. Debuginfo was already absent.
+# The cost is the same one the dev profile accepts below: a `panic!`
+# backtrace shows addresses instead of names. `tracing` output carries module
+# names and messages, so ordinary diagnostics are unaffected.
+[profile.release]
+strip = "symbols"
+
+# Drop debuginfo from dev/debug builds. The Android debug `.so` was ~320 MB
+# (bloating the APK to ~650 MB because AGP also bundled symbols into the APK
+# signing block); stripping debuginfo brings it down to tens of MB. We don't
+# lose much: `tracing` log output uses module names + messages, not stack
+# frames, so logcat diagnostics stay readable. `panic!` backtraces will show
+# addresses rather than file:line, but those are rare in this app.
+[profile.dev]
+strip = "debuginfo"
+# opt-level 1 (2026-07-22): debug builds ran the chunked-attachment AEAD at
+# ~2-3 MB/s — the 942 MB field video buffered for many seconds on the debug
+# APK. Per-package opt-level overrides on the crypto crates barely helped
+# (7.5 -> 11 MB/s on the host bench): RustCrypto's generic cipher cores
+# monomorphize INTO this crate and compile at ITS opt-level. Level 1 puts
+# the same bench at 804 MB/s (release: ~2 GB/s) while keeping debug asserts
+# and usable debuginfo.
+opt-level = 1
+
+# Belt-and-braces for the crypto crates' own codegen units; the dominant
+# fix is the consumer-side opt-level above.
+[profile.dev.package.chacha20]
+opt-level = 3
+[profile.dev.package.chacha20poly1305]
+opt-level = 3
+[profile.dev.package.poly1305]
+opt-level = 3
+[profile.dev.package.aead]
+opt-level = 3
+[profile.dev.package.cipher]
+opt-level = 3
+[profile.dev.package.universal-hash]
+opt-level = 3
+[profile.dev.package.generic-array]
+opt-level = 3
+[profile.dev.package.subtle]
+opt-level = 3
+
+# Vendored if-watch 3.2.2 with the netlink backend enabled on Android
+# (upstream gives Android the broken 10 s-polling fallback whose
+# getifaddrs is denied by SELinux). Covers libp2p-tcp (wildcard-listener
+# expansion -> own LAN listen addresses for QR invites/identify),
+# libp2p-mdns (same-Wi-Fi discovery) and the direct probe dependency
+# above. See vendor/if-watch/Cargo.toml header and
+# next-steps/connection-manager-idle-polish.md В§7.
+[patch.crates-io]
+if-watch = { path = "vendor/if-watch" }

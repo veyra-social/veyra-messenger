@@ -1,0 +1,134 @@
+# Vendored copy of if-watch 3.2.2 (https://github.com/libp2p/if-watch,
+# MIT OR Apache-2.0) with ONE functional change: Android gets its own
+# backend (src/android.rs, connected-UDP route probing) instead of the
+# generic 10-second-polling fallback backend.
+#
+# Why: upstream cfg gives Android the fallback backend, whose
+# if_addrs::get_if_addrs() enumeration is denied by Android SELinux
+# (bionic getifaddrs rides netlink). The netlink backend from linux.rs
+# is equally dead there: vendor policies deny even socket/bind
+# (field-verified EACCES on ASUS ZS590KS + Samsung S938B, 2026-07-08).
+# Connected-UDP route probing (connect() + getsockname(), transmits
+# nothing) needs no special permission at all. Without this patch an
+# Android client never learns its own interface addresses: no LAN listen
+# addrs in QR invites/identify, dead mdns, and a futile EACCES ERROR log
+# line every 10 seconds.
+# See next-steps/connection-manager-idle-polish.md §7 (2026-07-08 slice).
+#
+# Diff vs upstream: this manifest's target cfg expressions, the cfg
+# attributes in src/lib.rs and the added src/android.rs — nothing else.
+# Applied via [patch.crates-io] in src-tauri/Cargo.toml.
+
+[package]
+edition = "2021"
+name = "if-watch"
+version = "3.2.2"
+authors = [
+    "David Craven <david@craven.ch>",
+    "Parity Technologies Limited <admin@parity.io>",
+]
+description = "crossplatform asynchronous network watcher (vendored, Android netlink backend enabled)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/libp2p/if-watch"
+
+[features]
+smol = [
+    "dep:smol",
+    "rtnetlink/smol_socket",
+]
+tokio = [
+    "dep:tokio",
+    "rtnetlink/tokio_socket",
+]
+
+[lib]
+name = "if_watch"
+crate-type = [
+    "cdylib",
+    "lib",
+]
+path = "src/lib.rs"
+
+[dependencies.fnv]
+version = "1.0.7"
+
+[dependencies.futures]
+version = "0.3.19"
+
+[dependencies.ipnet]
+version = "2.3.1"
+
+[dependencies.log]
+version = "0.4.14"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.core-foundation]
+version = "0.9.4"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.if-addrs]
+version = "0.15.0"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.smol]
+version = "2"
+optional = true
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.system-configuration]
+version = "0.7.0"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.tokio]
+version = "1.21.2"
+features = ["rt"]
+optional = true
+
+[target.'cfg(not(any(target_os = "ios", target_os = "linux", target_os = "android", target_os = "macos", target_os = "windows")))'.dependencies.async-io]
+version = "2.0.0"
+
+[target.'cfg(not(any(target_os = "ios", target_os = "linux", target_os = "android", target_os = "macos", target_os = "windows")))'.dependencies.if-addrs]
+version = "0.15.0"
+
+[target.'cfg(target_os = "android")'.dependencies.async-io]
+version = "2.0.0"
+
+[target.'cfg(target_os = "linux")'.dependencies.netlink-packet-core]
+version = "0.8.1"
+default-features = false
+
+[target.'cfg(target_os = "linux")'.dependencies.netlink-packet-route]
+version = "0.28.0"
+default-features = false
+
+[target.'cfg(target_os = "linux")'.dependencies.netlink-proto]
+version = "0.12.0"
+default-features = false
+
+[target.'cfg(target_os = "linux")'.dependencies.netlink-sys]
+version = "0.8.8"
+default-features = false
+
+[target.'cfg(target_os = "linux")'.dependencies.rtnetlink]
+version = "0.20.0"
+default-features = false
+
+[target.'cfg(target_os = "windows")'.dependencies.if-addrs]
+version = "0.15.0"
+
+[target.'cfg(target_os = "windows")'.dependencies.windows]
+version = "0.62.0"
+features = [
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_Foundation",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+]
+
+[dev-dependencies.env_logger]
+version = "0.10.0"
+
+[dev-dependencies.smol]
+version = "2"
+
+[dev-dependencies.tokio]
+version = "1.21.2"
+features = [
+    "rt",
+    "macros",
+]

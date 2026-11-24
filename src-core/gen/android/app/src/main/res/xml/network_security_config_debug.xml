@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug: cleartext fully permitted, mirroring the historical
+     usesCleartextTraffic=true (the tauri dev server is plain http on the
+     LAN). A networkSecurityConfig overrides the manifest attribute, so the
+     debug variant needs its own permissive config. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

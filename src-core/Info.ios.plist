@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Veyra использует локальную сеть для прямой защищённой связи и передачи файлов.</string>
+
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Veyra использует микрофон для приватных голосовых звонков.</string>
+
+  <key>NSCameraUsageDescription</key>
+  <string>Veyra использует камеру для сканирования QR-кодов приглашений.</string>
+
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <true/>
+
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_p2p._udp</string>
+  </array>
+</dict>
+</plist>

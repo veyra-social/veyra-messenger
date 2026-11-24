@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Veyra Messenger</title>
+    <script>
+      (function () {
+        var FONT_PX = { sm: "13px", md: "14px", lg: "16px", xl: "18px" };
+        try {
+          var saved = window.localStorage.getItem("veyra.ui_theme");
+          var theme = saved === "auto" || saved === "dark" ? saved : "light";
+          var effective = theme;
+          if (theme === "auto") {
+            effective =
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          }
+          document.documentElement.dataset.theme = effective;
+          document.documentElement.dataset.themeMode = theme;
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+        try {
+          var ui = window.localStorage.getItem("veyra.ui_font_scale");
+          if (ui !== "sm" && ui !== "lg" && ui !== "xl") ui = "md";
+          var chat = window.localStorage.getItem("veyra.chat_font_scale");
+          if (chat !== "sm" && chat !== "lg" && chat !== "xl") chat = "md";
+          document.documentElement.style.setProperty("--ui-font-base", FONT_PX[ui]);
+          document.documentElement.style.setProperty("--chat-font-base", FONT_PX[chat]);
+          document.documentElement.dataset.uiFontScale = ui;
+          document.documentElement.dataset.chatFontScale = chat;
+        } catch (e) {
+          /* default 14px */
+        }
+        try {
+          var SKINS = ["veyra","classic-imessage","imessage","viber","telegram","whatsapp"];
+          var skin = window.localStorage.getItem("veyra.ui_skin");
+          document.documentElement.dataset.skin = SKINS.indexOf(skin) >= 0 ? skin : "veyra";
+        } catch (e) {
+          document.documentElement.dataset.skin = "veyra";
+        }
+      })();
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #fbfdfb;
+        color: #252c31;
+        font-family:
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+      }
+      html[data-theme="dark"],
+      html[data-theme="dark"] body {
+        background: #07140e;
+        color: #e6eeea;
+      }
+      #root {
+        height: 100%;
+      }
+      .boot-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        background: #fbfdfb;
+        color: #05684b;
+        z-index: 9999;
+        transition: opacity 200ms ease;
+      }
+      html[data-theme="dark"] .boot-splash {
+        background: #07140e;
+        color: #2bd988;
+      }
+      .boot-splash[data-fade-out="true"] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .boot-splash__logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+      .boot-splash__mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #05684b;
+        color: #c7f11f;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        font-weight: 900;
+      }
+      html[data-theme="dark"] .boot-splash__mark {
+        background: #14c778;
+        color: #07140e;
+      }
+      .boot-splash__bar {
+        width: 180px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(5, 104, 75, 0.12);
+        overflow: hidden;
+        position: relative;
+      }
+      html[data-theme="dark"] .boot-splash__bar {
+        background: rgba(43, 217, 136, 0.18);
+      }
+      .boot-splash__bar::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 40%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #08a95f, #c7f11f);
+        animation: boot-shimmer 1100ms ease-in-out infinite;
+      }
+      html[data-theme="dark"] .boot-splash__bar::after {
+        background: linear-gradient(90deg, #14c778, #8fe21d);
+      }
+      @keyframes boot-shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(350%);
+        }
+      }
+      .boot-splash__tagline {
+        font-size: 12px;
+        font-weight: 700;
+        opacity: 0.7;
+        letter-spacing: 0.04em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot-splash" id="boot-splash" aria-hidden="true">
+        <div class="boot-splash__logo">
+          <span class="boot-splash__mark">V</span>
+          <span>veyra.social</span>
+        </div>
+        <div class="boot-splash__bar"></div>
+        <div class="boot-splash__tagline">Private P2P Messenger</div>
+      </div>
+    </div>
+    <script type="module" src="/src-ui/main.tsx"></script>
+  </body>
+</html>

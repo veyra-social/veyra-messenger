@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release: cleartext stays blocked everywhere EXCEPT loopback — the
+     in-process media server (media_server.rs) serves decrypted video slices
+     on http://127.0.0.1:<random port> because Android WebView cannot stream
+     large videos over the intercepted veyra-media scheme. Requests are
+     guarded by a per-process 128-bit token; nothing leaves the device. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

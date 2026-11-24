@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Veyra</string>
+    <string name="main_activity_title">Veyra</string>
+    <string name="bg_service_channel_name">Connectivity</string>
+    <string name="bg_service_channel_desc">Keeps Veyra reachable in the background.</string>
+    <string name="bg_service_title">Veyra</string>
+    <string name="bg_service_text">Secure connection active</string>
+</resources>
